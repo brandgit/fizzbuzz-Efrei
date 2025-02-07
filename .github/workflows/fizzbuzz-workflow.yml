@@ -88,13 +88,7 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build -t fizzbuzz-app .
-          docker tag fizzbuzz-app mydockerhubuser/fizzbuzz-app:latest
-
-      - name: Login to DockerHub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Push Docker Image
-        run: docker push mydockerhubuser/fizzbuzz-app:latest
+          docker tag fizzbuzz-app branddocker/fizzbuzz-app:latest
 
   # 5️⃣ GÉNÉRATION ET PUBLICATION DE DOCUMENTATION (Uniquement sur main)
   deploy-docs:
