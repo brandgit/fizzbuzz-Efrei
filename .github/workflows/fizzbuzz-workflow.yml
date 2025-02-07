@@ -1,56 +1,113 @@
-name: Run Tests & Coverage
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
-    - main
-    - feature/*
-
+      - main
+      - develop
+      - feature/*
   pull_request:
     branches:
-    - main
-
+      - main
+      - develop
 
 jobs:
+  # 1️⃣ TESTS UNITAIRES DANS DOCKER
   test:
     runs-on: ubuntu-latest
-    steps:   
+
+    steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-         
+
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run the project
+      - name: Run Tests in Docker
         run: |
-          python main.py
-          
-      - name: Run Tests and Coverage
+          docker build -t fizzbuzz-test .
+          docker run --rm fizzbuzz-test pytest tests/
+
+  # 2️⃣ VALIDATION DE LA PR (Bloquer si les tests échouent)
+  pr-validation:
+    needs: test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Test Status
+        if: ${{ needs.test.result != 'success' }}
         run: |
-          pytest --cov=fizzbuzz --cov-report=term-missing tests/
-       
+          echo "❌ Les tests ont échoué, la PR ne peut pas être fusionnée."
+          exit 1
+
+      - name: Validate PR (if tests passed)
+        run: echo "✅ Les tests sont réussis ! La PR peut être fusionnée."
+
+  # 3️⃣ GÉNÉRER UN RAPPORT DE COUVERTURE DE CODE
+  code-coverage:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run Coverage Tests
+        run: pytest --cov=fizzbuzz --cov-report=xml tests/
+
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: htmlcov/
+          path: coverage.xml
 
-  pr-validation:
-      needs: test  # Cette étape dépend du succès des tests
-      runs-on: ubuntu-latest
-      steps:
-        - name: Check Test status
-          if: ${{needs.test.result != 'success'}}
-          run: |
-            echo" Les tests ont échoué, la PR ne peut pas être fusionné"
-        - name: Validate_PR
-          run: echo "Tests passed! PR can be merged."
+  # 4️⃣ CONSTRUCTION ET PUBLICATION DE L'IMAGE DOCKER (Uniquement sur main)
+  build-and-push-docker:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
 
-  
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -t fizzbuzz-app .
+          docker tag fizzbuzz-app mydockerhubuser/fizzbuzz-app:latest
+
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Docker Image
+        run: docker push mydockerhubuser/fizzbuzz-app:latest
+
+  # 5️⃣ GÉNÉRATION ET PUBLICATION DE DOCUMENTATION (Uniquement sur main)
+  deploy-docs:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Generate Documentation
+        run: make docs  # Commande pour générer la documentation
+
+      - name: Deploy Documentation
+        run: make deploy-docs  # Commande pour publier la documentation
