@@ -42,5 +42,14 @@ jobs:
           name: coverage-report
           path: htmlcov/
 
-
+  pr-validation:
+      needs: test  # Cette étape dépend du succès des tests
+      runs-on: ubuntu-latest
+      steps:
+        - name: Check Test status
+          if: ${{needs.test.result != 'success'}}
+          run: |
+            echo" Les tests ont échoué, la PR ne peut pas être fusionné"
+        - name: Validate_PR
+          run: echo "Tests passed! PR can be merged."
   
