@@ -90,26 +90,3 @@ jobs:
           docker build -t fizzbuzz-app .
           docker tag fizzbuzz-app branddocker/fizzbuzz-app:latest
 
-  # 5️⃣ GÉNÉRATION ET PUBLICATION DE DOCUMENTATION (Uniquement sur main)
-  deploy-docs:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Install Sphinx (si nécessaire)
-        run: pip install sphinx
-
-      - name: Generate Documentation
-        run: make docs
-
-      - name: Deploy Documentation
-        run: make deploy-docs
