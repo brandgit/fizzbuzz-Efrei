@@ -89,4 +89,3 @@ jobs:
         run: |
           docker build -t fizzbuzz-app .
           docker tag fizzbuzz-app branddocker/fizzbuzz-app:latest
-
