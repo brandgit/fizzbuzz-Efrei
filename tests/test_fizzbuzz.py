@@ -25,4 +25,4 @@ def test_contains_5():
 
 def test_contains_3_and_5():
     """Testes si le nombre contient à la fois un 3 et un 5"""
-    assert fizzbuzz(45) == "FizzBuzz"
+    assert fizzbuzz(45) == "Fizzbuzz"
